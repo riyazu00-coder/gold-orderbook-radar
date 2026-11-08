@@ -152,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Nearest Big Buyers</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
-          <div className="text-xl font-bold font-mono text-white">
+          <div className="text-2xl font-bold font-mono text-emerald-400">
             {nearestBigBuyer ? nearestBigBuyer.priceRange : 'Scanning...'}
           </div>
           <div className="text-[11px] text-slate-400 mt-1 flex justify-between">
@@ -175,7 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Nearest Big Sellers</span>
             <span className="w-2 h-2 rounded-full bg-orange-500" />
           </div>
-          <div className="text-xl font-bold font-mono text-white">
+          <div className="text-2xl font-bold font-mono text-orange-400">
             {nearestBigSeller ? nearestBigSeller.priceRange : 'Scanning...'}
           </div>
           <div className="text-[11px] text-slate-400 mt-1 flex justify-between">
@@ -192,6 +192,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Bright Neon Green Divider Line matching video & screenshot */}
+      <div className="h-1 bg-emerald-500 w-full shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
     </header>
   );
 };

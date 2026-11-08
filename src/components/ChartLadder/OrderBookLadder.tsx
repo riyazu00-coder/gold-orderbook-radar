@@ -2,20 +2,21 @@ import React from 'react';
 import { LadderRow } from '../../services/orderBookEngine';
 import { CandleFootprint } from '../../services/footprintEngine';
 
-interface OrderBookLadderProps {
+export interface OrderBookLadderProps {
   ladder: LadderRow[];
   currentPrice: number;
   activeCandle?: CandleFootprint | null;
+  rowHeight?: number;
 }
 
 export const OrderBookLadder: React.FC<OrderBookLadderProps> = ({
   ladder,
   currentPrice,
   activeCandle,
+  rowHeight = 28,
 }) => {
   const maxBid = Math.max(...ladder.map((r) => r.bidSize), 1);
   const maxAsk = Math.max(...ladder.map((r) => r.askSize), 1);
-  const maxPulled = Math.max(...ladder.map((r) => r.pulledSize), 1);
 
   // Map active candle per-level trades
   const tradeBinMap = new Map<number, { buyVol: number; sellVol: number }>();
@@ -26,103 +27,111 @@ export const OrderBookLadder: React.FC<OrderBookLadderProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0d111a]">
-      {/* Subheader matching video */}
-      <div className="px-3 py-1.5 border-b border-[#161d2d] bg-[#0d121c] flex items-center justify-between text-[11px] text-slate-400 font-mono">
-        <span className="w-24 text-right pr-3 font-semibold text-slate-300">Price ($)</span>
-        <span className="flex-1 pl-2">Resting Liquidity & Pulled Orders</span>
-        <span className="w-36 text-right pr-2 text-slate-300">Forming Candle Flow</span>
-      </div>
-
+    <div className="flex-1 flex flex-col bg-[#0b0e14] min-w-0">
       <div className="flex-1">
         {ladder.map((row, idx) => {
           const isCurrent = Math.abs(row.price - currentPrice) < 0.25;
-          const bidWidth = (row.bidSize / maxBid) * 110;
-          const askWidth = (row.askSize / maxAsk) * 110;
-          const pulledWidth = row.pulledSize > 0 ? Math.min(90, (row.pulledSize / maxPulled) * 75) : 0;
-
+          const bidWidth = (row.bidSize / maxBid) * 95;
+          const askWidth = (row.askSize / maxAsk) * 95;
           const tradeInfo = tradeBinMap.get(row.price);
 
           return (
             <div
               key={`${row.price}-${idx}`}
-              className={`flex items-center h-8 text-xs font-mono border-b border-[#161d2d] transition-colors ${
-                isCurrent ? 'bg-blue-600/15' : 'hover:bg-slate-800/30'
+              style={{ height: rowHeight }}
+              className={`flex items-center text-xs font-mono border-b border-[#141926] transition-colors ${
+                isCurrent ? 'bg-blue-600/20 border-y border-blue-500/40' : 'hover:bg-slate-800/25'
               }`}
             >
-              {/* Center Price Column */}
-              <div className="w-24 text-right pr-3 font-semibold relative shrink-0">
-                <span
-                  className={`${
-                    isCurrent
-                      ? 'text-white bg-blue-600 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(59,130,246,0.6)] font-bold'
-                      : 'text-slate-200'
-                  }`}
-                >
-                  {row.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
+              {/* Left Column: Buyers Waiting (Green bar extending LEFTWARDS) */}
+              <div className="w-36 flex items-center justify-end pr-2 gap-1.5 shrink-0 overflow-hidden">
+                {/* Yellow dot if orders were pulled at this level */}
+                {row.pulledSize > 0 && (
+                  <span
+                    className="w-2 h-2 rounded-full bg-yellow-400 inline-block shadow-[0_0_6px_rgba(250,204,21,0.9)] shrink-0"
+                    title={`${Math.round(row.pulledSize)} pulled`}
+                  />
+                )}
 
-              {/* Depth Bars & Quantities Container */}
-              <div className="flex-1 flex items-center gap-1.5 pl-2 relative overflow-hidden">
-                {/* Buyers Waiting Bar (Green) */}
+                {/* Green Bid Bar */}
                 {row.bidSize > 0 && (
                   <div
-                    className="h-4 bg-emerald-500/85 rounded-r flex items-center px-1 text-[10px] text-black font-bold shadow-[0_0_8px_rgba(16,185,129,0.3)] transition-all shrink-0"
-                    style={{ width: `${Math.max(16, bidWidth)}px` }}
+                    className="h-4 bg-emerald-500/90 rounded-l flex items-center justify-end pr-1.5 text-[10px] text-black font-extrabold shadow-[0_0_8px_rgba(16,185,129,0.3)] transition-all shrink-0"
+                    style={{ width: `${Math.max(20, bidWidth)}px` }}
                   >
                     {Math.round(row.bidSize)}
                   </div>
                 )}
+              </div>
 
-                {/* Sellers Waiting Bar (Orange) */}
+              {/* Center Price Column */}
+              <div className="w-24 text-center shrink-0 font-bold select-none">
+                <span
+                  className={`${
+                    isCurrent
+                      ? 'text-white bg-blue-600 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(59,130,246,0.8)] font-extrabold flex items-center justify-center gap-1 mx-auto'
+                      : 'text-slate-200'
+                  }`}
+                >
+                  <span>{row.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  {isCurrent && <span className="text-white text-[10px]">◄</span>}
+                </span>
+              </div>
+
+              {/* Right Column: Sellers Waiting (Orange bar extending RIGHTWARDS) */}
+              <div className="w-36 flex items-center justify-start pl-2 gap-1.5 shrink-0 overflow-hidden">
+                {/* Orange Ask Bar */}
                 {row.askSize > 0 && (
                   <div
-                    className="h-4 bg-orange-500/85 rounded-r flex items-center px-1 text-[10px] text-black font-bold shadow-[0_0_8px_rgba(249,115,22,0.3)] transition-all shrink-0"
-                    style={{ width: `${Math.max(16, askWidth)}px` }}
+                    className="h-4 bg-orange-500/90 rounded-r flex items-center justify-start pl-1.5 text-[10px] text-black font-extrabold shadow-[0_0_8px_rgba(249,115,22,0.3)] transition-all shrink-0"
+                    style={{ width: `${Math.max(20, askWidth)}px` }}
                   >
                     {Math.round(row.askSize)}
                   </div>
                 )}
 
-                {/* Pulled / Cancelled Orders Bar (Yellow) */}
+                {/* Yellow dot if orders were pulled at this level */}
                 {row.pulledSize > 0 && (
-                  <div
-                    className="h-3.5 bg-yellow-400/95 rounded flex items-center px-1.5 text-[9px] text-black font-bold shadow-[0_0_6px_rgba(250,204,21,0.5)] transition-all shrink-0"
-                    style={{ width: `${Math.max(22, pulledWidth)}px` }}
-                  >
-                    {Math.round(row.pulledSize)} pulled
-                  </div>
+                  <span
+                    className="w-2 h-2 rounded-full bg-yellow-400 inline-block shadow-[0_0_6px_rgba(250,204,21,0.9)] shrink-0"
+                    title={`${Math.round(row.pulledSize)} pulled`}
+                  />
                 )}
+              </div>
 
-                {/* Badges for Big Buyers and Big Sellers */}
+              {/* Forming Candle Flow Column (matching exact video & screenshot badges) */}
+              <div className="flex-1 flex items-center gap-2 pl-4 pr-3 text-[11px] font-mono shrink-0 overflow-hidden">
+                {/* Whale Badges */}
                 {row.isBigBuyer && (
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-1.5 py-0.2 rounded font-sans font-bold flex items-center gap-1 animate-pulse shrink-0">
-                    Big Buyers ({Math.round(row.bidSize)})
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.2 rounded font-sans font-bold shrink-0 animate-pulse">
+                    Big Buyers
                   </span>
                 )}
 
                 {row.isBigSeller && (
-                  <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-1.5 py-0.2 rounded font-sans font-bold flex items-center gap-1 animate-pulse shrink-0">
-                    Big Sellers ({Math.round(row.askSize)})
+                  <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.2 rounded font-sans font-bold shrink-0 animate-pulse">
+                    Big Sellers
                   </span>
                 )}
-              </div>
 
-              {/* Forming Candle Micro-Flow Column (matching video column!) */}
-              <div className="w-36 text-right pr-3 shrink-0 flex items-center justify-end gap-1.5 font-mono text-[11px]">
+                {/* Bought Lots */}
                 {tradeInfo && tradeInfo.buyVol > 0 && (
-                  <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded">
+                  <span className="text-emerald-400 font-bold shrink-0">
                     {Math.round(tradeInfo.buyVol)} bought
                   </span>
                 )}
+
+                {/* Sold Lots */}
                 {tradeInfo && tradeInfo.sellVol > 0 && (
-                  <span className="text-orange-400 font-bold bg-orange-500/10 px-1 py-0.5 rounded">
+                  <span className="text-orange-400 font-bold shrink-0">
                     {Math.round(tradeInfo.sellVol)} sold
                   </span>
                 )}
+
+                {/* Pulled Lots */}
                 {row.pulledSize > 0 && (
-                  <span className="text-yellow-400 font-semibold bg-yellow-500/10 px-1 py-0.5 rounded">
+                  <span className="text-yellow-400/95 flex items-center gap-1 font-semibold shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />
                     {Math.round(row.pulledSize)} pulled
                   </span>
                 )}
@@ -134,3 +143,4 @@ export const OrderBookLadder: React.FC<OrderBookLadderProps> = ({
     </div>
   );
 };
+

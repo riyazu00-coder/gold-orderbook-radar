@@ -234,6 +234,7 @@ export default function App() {
             stepDescription={stepDescription}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            secondsIntoMinute={formingStats.secondsIntoMinute}
           />
 
           {/* Quick Notice & Sound Toggle */}
