@@ -8,3 +8,11 @@ Task 5: complete (commits 4c2735a..5efb07c, tests: vitest run src/services/optio
 Task 6: complete (commits 5efb07c..e6438e3, tests: vitest run src/components/ChartLadder/ChartLadder.test.tsx -> 2/2 pass)
 Task 7: complete (commits e6438e3..2dc90a1, tests: vitest run src/components/Analytics/RightPanel.test.tsx -> 2/2 pass)
 Task 8: complete (commits 2dc90a1..f9ddeaf, tests: vitest run -> 20/20 pass)
+Final: fixed Critical 1 (WebSocket reconnect loop) — decoupled useEffect lifecycle with empty deps array
+Final: fixed Critical 2 (Depth stream accuracy) — switched to depth20@100ms full snapshots
+Final: fixed Critical 3 (Inverted Put options ladder) — test ensures Put ladder is sorted descending RED->GREEN, suite 23/23
+Final: fixed Critical 4 (Sub-tick overwrites & false pulls) — test preserves exact raw sub-tick orders RED->GREEN, suite 23/23
+Final: fixed Important 6 (Ladder viewport jitter) — test computes deadband smoothed center price RED->GREEN, suite 23/23
+Final: fixed Important 7 (Duplicate React keys in option ladder) — composite key `${row.price}-${idx}`
+Final: minor (deferred): exponential backoff on reconnection
+Final: minor (deferred): AudioContext lazy resume on explicit user click
