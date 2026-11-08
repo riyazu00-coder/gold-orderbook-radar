@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { BinanceGoldFeed } from './services/binanceFeed';
 import { OrderBookEngine, LadderRow, BigOrderSummary } from './services/orderBookEngine';
-import { FootprintEngine, CandleFootprint, FormingCandleStats } from './services/footprintEngine';
+import { FootprintEngine, CandleFootprint, FormingCandleStats, generateSeedCandles } from './services/footprintEngine';
 import { computeATMStrike, computeOptionPrice, deriveOptionLadder } from './services/optionsEngine';
 import { Header } from './components/Header/Header';
 import { ChartLadder } from './components/ChartLadder/ChartLadder';
@@ -25,6 +25,7 @@ export default function App() {
   const [latencyMs, setLatencyMs] = useState<number>(14);
   const [ladder, setLadder] = useState<LadderRow[]>([]);
   const [activeCandle, setActiveCandle] = useState<CandleFootprint | null>(null);
+  const [historicalCandles, setHistoricalCandles] = useState<CandleFootprint[]>(() => generateSeedCandles(2684.50, 8));
   const [nearestBigBuyer, setNearestBigBuyer] = useState<BigOrderSummary | null>(null);
   const [nearestBigSeller, setNearestBigSeller] = useState<BigOrderSummary | null>(null);
   const [bigOrders, setBigOrders] = useState<BigOrderInfo[]>([]);
@@ -125,6 +126,8 @@ export default function App() {
 
       setLadder(rawLadder);
       setActiveCandle(activeFp);
+      const hist = fp.getHistoricalCandles();
+      if (hist.length > 0) setHistoricalCandles(hist);
       setNearestBigBuyer(ob.getNearestBigBuyers(currentSpot));
       setNearestBigSeller(ob.getNearestBigSellers(currentSpot));
       setBigOrders(bigs);
@@ -210,6 +213,7 @@ export default function App() {
           <ChartLadder
             ladder={displayedLadder}
             activeCandle={activeCandle}
+            historicalCandles={historicalCandles}
             currentPrice={displayedPrice}
             instrumentTitle={instrumentTitle}
             stepDescription={stepDescription}

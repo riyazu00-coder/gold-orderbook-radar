@@ -152,3 +152,38 @@ export class FootprintEngine {
     };
   }
 }
+
+export function generateSeedCandles(basePrice: number, count: number = 8): CandleFootprint[] {
+  const candles: CandleFootprint[] = [];
+  const now = Date.now();
+  let currentOpen = basePrice - 2.5;
+
+  for (let i = count; i >= 1; i--) {
+    const openTime = now - i * 60000;
+    const isUp = i % 2 === 0;
+    const delta = (Math.random() * 1.5 + 0.5) * (isUp ? 1 : -1);
+    const close = Number((currentOpen + delta).toFixed(2));
+    const high = Number((Math.max(currentOpen, close) + Math.random() * 0.8).toFixed(2));
+    const low = Number((Math.min(currentOpen, close) - Math.random() * 0.8).toFixed(2));
+    const vol = Math.round(Math.random() * 80 + 40);
+
+    candles.push({
+      candle: {
+        openTime,
+        open: currentOpen,
+        high,
+        low,
+        close,
+        volume: vol,
+        isClosed: true,
+      },
+      bins: [],
+      totalBought: Math.round(vol * 0.55),
+      totalSold: Math.round(vol * 0.45),
+    });
+
+    currentOpen = close;
+  }
+
+  return candles;
+}

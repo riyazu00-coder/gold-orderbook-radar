@@ -1,12 +1,13 @@
 import React from 'react';
 import { LadderRow } from '../../services/orderBookEngine';
 import { CandleFootprint } from '../../services/footprintEngine';
-import { FootprintCandle } from './FootprintCandle';
+import { CandlestickChart } from './CandlestickChart';
 import { OrderBookLadder } from './OrderBookLadder';
 
 interface ChartLadderProps {
   ladder: LadderRow[];
   activeCandle: CandleFootprint | null;
+  historicalCandles?: CandleFootprint[];
   currentPrice: number;
   instrumentTitle?: string;
   stepDescription?: string;
@@ -15,12 +16,19 @@ interface ChartLadderProps {
 export const ChartLadder: React.FC<ChartLadderProps> = ({
   ladder,
   activeCandle,
+  historicalCandles = [],
   currentPrice,
   instrumentTitle = 'Gold Spot',
   stepDescription = 'lots waiting, per $0.50 points',
 }) => {
+  const ladderPrices = ladder.map((r) => r.price);
+  const minPrice = ladderPrices.length > 0 ? Math.min(...ladderPrices) : currentPrice - 8;
+  const maxPrice = ladderPrices.length > 0 ? Math.max(...ladderPrices) : currentPrice + 8;
+  const rowHeight = 28;
+  const totalHeight = Math.max(560, ladder.length * rowHeight);
+
   return (
-    <div className="bg-[#111520] border border-[#1b2234] rounded-lg overflow-hidden flex flex-col shadow-xl">
+    <div className="bg-[#111520] border border-[#1b2234] rounded-lg overflow-hidden flex flex-col shadow-2xl">
       {/* Legend & Header */}
       <div className="px-4 py-2.5 border-b border-[#1b2234] flex flex-wrap items-center justify-between text-xs text-gray-400 bg-[#0d1017]">
         <div className="flex items-center gap-2">
@@ -45,23 +53,20 @@ export const ChartLadder: React.FC<ChartLadderProps> = ({
         </div>
       </div>
 
-      {/* Main Interactive Center Ladder */}
+      {/* Main Interactive Center Area: Candlestick Chart (Left) + Order Book Ladder (Right) */}
       <div className="flex overflow-y-auto max-h-[640px] divide-x divide-[#1b2234]">
-        {/* Footprint Candle Influx Column (Left) */}
-        <div className="w-32 bg-[#0c0f17] flex flex-col pt-1">
-          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider text-center py-1 border-b border-[#161d2d]">
-            Footprint Influx
-          </div>
-          {ladder.map((row) => (
-            <FootprintCandle
-              key={`footprint-${row.price}`}
-              candleFootprint={activeCandle}
-              targetPrice={row.price}
-            />
-          ))}
-        </div>
+        {/* Real Candlestick Chart with live footprint fill dots (Left) */}
+        <CandlestickChart
+          candles={historicalCandles}
+          activeCandle={activeCandle}
+          currentPrice={currentPrice}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          height={totalHeight}
+          width={400}
+        />
 
-        {/* Price & Order Book Ladder (Center & Right) */}
+        {/* Price Ladder & Order Book Depth (Right) */}
         <OrderBookLadder ladder={ladder} currentPrice={currentPrice} />
       </div>
     </div>
