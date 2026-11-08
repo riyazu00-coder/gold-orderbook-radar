@@ -53,7 +53,7 @@ export function deriveOptionLadder(
   type: 'call' | 'put',
   spotLadder: LadderRow[],
   spotPrice: number,
-  strike: number,
+  _strike: number,
   baseOptionPrice: number
 ): LadderRow[] {
   const delta = type === 'call' ? 0.52 : -0.48;

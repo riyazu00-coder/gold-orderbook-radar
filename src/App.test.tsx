@@ -5,6 +5,6 @@ import App from './App';
 describe('App Component', () => {
   it('renders the Gold OrderBook Radar header and branding', () => {
     render(<App />);
-    expect(screen.getByText(/Gold OrderBook Radar/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Gold Spot$/i })).toBeInTheDocument();
   });
 });

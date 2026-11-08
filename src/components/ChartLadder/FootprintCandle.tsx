@@ -1,5 +1,5 @@
 import React from 'react';
-import { CandleFootprint, PriceBin } from '../../services/footprintEngine';
+import { CandleFootprint } from '../../services/footprintEngine';
 
 interface FootprintCandleProps {
   candleFootprint: CandleFootprint | null;
