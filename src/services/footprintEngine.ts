@@ -24,8 +24,43 @@ export interface FormingCandleStats {
 
 export interface FootprintOptions {
   tickSize?: number;
-  dotLotUnit?: number;     // e.g. 2.0 lots per dot
+  dotLotUnit?: number;     // e.g. 1.0 or 2.0 lots per dot
   maxDotsPerRow?: number;  // max dots to render per row
+}
+
+export function generateSeedCandles(basePrice: number, count: number = 6): CandleFootprint[] {
+  const candles: CandleFootprint[] = [];
+  const now = Date.now();
+  let currentOpen = Number((basePrice - 2.0).toFixed(2));
+
+  for (let i = count; i >= 1; i--) {
+    const openTime = now - i * 60000;
+    const isUp = i % 2 === 0;
+    const delta = Number(((Math.random() * 1.5 + 0.5) * (isUp ? 1 : -1)).toFixed(2));
+    const close = Number((currentOpen + delta).toFixed(2));
+    const high = Number((Math.max(currentOpen, close) + Math.random() * 0.8 + 0.2).toFixed(2));
+    const low = Number((Math.min(currentOpen, close) - Math.random() * 0.8 - 0.2).toFixed(2));
+    const vol = Math.round(Math.random() * 80 + 40);
+
+    candles.push({
+      candle: {
+        openTime,
+        open: currentOpen,
+        high,
+        low,
+        close,
+        volume: vol,
+        isClosed: true,
+      },
+      bins: [],
+      totalBought: Math.round(vol * 0.55),
+      totalSold: Math.round(vol * 0.45),
+    });
+
+    currentOpen = close;
+  }
+
+  return candles;
 }
 
 export class FootprintEngine {
@@ -40,7 +75,7 @@ export class FootprintEngine {
 
   constructor(options: FootprintOptions = {}) {
     this.tickSize = options.tickSize || 0.5;
-    this.dotLotUnit = options.dotLotUnit || 2.0;
+    this.dotLotUnit = options.dotLotUnit || 1.5;
     this.maxDotsPerRow = options.maxDotsPerRow || 10;
   }
 
@@ -48,13 +83,16 @@ export class FootprintEngine {
     return Math.round(price / this.tickSize) * this.tickSize;
   }
 
+  public setHistoricalCandles(candles: CandleFootprint[]): void {
+    this.historicalCandles = candles;
+  }
+
   public initCandle(candle: Candle): void {
     if (this.activeCandle && this.activeCandle.openTime !== candle.openTime) {
-      // Archive completed candle
       const snapshot = this.getActiveCandleFootprint();
       if (snapshot) {
         this.historicalCandles.push(snapshot);
-        if (this.historicalCandles.length > 50) {
+        if (this.historicalCandles.length > 30) {
           this.historicalCandles.shift();
         }
       }
@@ -93,7 +131,6 @@ export class FootprintEngine {
     }
     this.binMap.set(price, existing);
 
-    // Update active candle H/L/C
     if (this.activeCandle) {
       this.activeCandle.high = Math.max(this.activeCandle.high, trade.price);
       this.activeCandle.low = Math.min(this.activeCandle.low, trade.price);
@@ -109,19 +146,19 @@ export class FootprintEngine {
     for (const [price, { buyVolume, sellVolume }] of this.binMap.entries()) {
       const buyDots = Math.min(
         this.maxDotsPerRow,
-        Math.floor(buyVolume / this.dotLotUnit)
+        Math.max(1, Math.floor(buyVolume / this.dotLotUnit))
       );
       const sellDots = Math.min(
         this.maxDotsPerRow,
-        Math.floor(sellVolume / this.dotLotUnit)
+        Math.max(1, Math.floor(sellVolume / this.dotLotUnit))
       );
 
       bins.push({
         price,
         buyVolume: Number(buyVolume.toFixed(2)),
         sellVolume: Number(sellVolume.toFixed(2)),
-        buyDots,
-        sellDots,
+        buyDots: buyVolume > 0 ? buyDots : 0,
+        sellDots: sellVolume > 0 ? sellDots : 0,
       });
     }
 
@@ -151,39 +188,4 @@ export class FootprintEngine {
       pulledLots: Number(pulledLots.toFixed(1)),
     };
   }
-}
-
-export function generateSeedCandles(basePrice: number, count: number = 8): CandleFootprint[] {
-  const candles: CandleFootprint[] = [];
-  const now = Date.now();
-  let currentOpen = basePrice - 2.5;
-
-  for (let i = count; i >= 1; i--) {
-    const openTime = now - i * 60000;
-    const isUp = i % 2 === 0;
-    const delta = (Math.random() * 1.5 + 0.5) * (isUp ? 1 : -1);
-    const close = Number((currentOpen + delta).toFixed(2));
-    const high = Number((Math.max(currentOpen, close) + Math.random() * 0.8).toFixed(2));
-    const low = Number((Math.min(currentOpen, close) - Math.random() * 0.8).toFixed(2));
-    const vol = Math.round(Math.random() * 80 + 40);
-
-    candles.push({
-      candle: {
-        openTime,
-        open: currentOpen,
-        high,
-        low,
-        close,
-        volume: vol,
-        isClosed: true,
-      },
-      bins: [],
-      totalBought: Math.round(vol * 0.55),
-      totalSold: Math.round(vol * 0.45),
-    });
-
-    currentOpen = close;
-  }
-
-  return candles;
 }

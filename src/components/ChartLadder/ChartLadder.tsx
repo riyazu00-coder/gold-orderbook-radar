@@ -11,6 +11,8 @@ interface ChartLadderProps {
   currentPrice: number;
   instrumentTitle?: string;
   stepDescription?: string;
+  timeframe?: string;
+  onTimeframeChange?: (tf: string) => void;
 }
 
 export const ChartLadder: React.FC<ChartLadderProps> = ({
@@ -20,12 +22,14 @@ export const ChartLadder: React.FC<ChartLadderProps> = ({
   currentPrice,
   instrumentTitle = 'Gold Spot',
   stepDescription = 'lots waiting, per $0.50 points',
+  timeframe = '1m',
+  onTimeframeChange,
 }) => {
   const ladderPrices = ladder.map((r) => r.price);
   const minPrice = ladderPrices.length > 0 ? Math.min(...ladderPrices) : currentPrice - 8;
   const maxPrice = ladderPrices.length > 0 ? Math.max(...ladderPrices) : currentPrice + 8;
-  const rowHeight = 28;
-  const totalHeight = Math.max(560, ladder.length * rowHeight);
+  const rowHeight = 32;
+  const totalHeight = Math.max(580, ladder.length * rowHeight);
 
   return (
     <div className="bg-[#111520] border border-[#1b2234] rounded-lg overflow-hidden flex flex-col shadow-2xl">
@@ -54,8 +58,8 @@ export const ChartLadder: React.FC<ChartLadderProps> = ({
       </div>
 
       {/* Main Interactive Center Area: Candlestick Chart (Left) + Order Book Ladder (Right) */}
-      <div className="flex overflow-y-auto max-h-[640px] divide-x divide-[#1b2234]">
-        {/* Real Candlestick Chart with live footprint fill dots (Left) */}
+      <div className="flex overflow-y-auto max-h-[660px] divide-x divide-[#1b2234]">
+        {/* Candlestick Chart with live footprint fill dots (Left) */}
         <CandlestickChart
           candles={historicalCandles}
           activeCandle={activeCandle}
@@ -63,11 +67,17 @@ export const ChartLadder: React.FC<ChartLadderProps> = ({
           minPrice={minPrice}
           maxPrice={maxPrice}
           height={totalHeight}
-          width={400}
+          width={440}
+          timeframe={timeframe}
+          onTimeframeChange={onTimeframeChange}
         />
 
         {/* Price Ladder & Order Book Depth (Right) */}
-        <OrderBookLadder ladder={ladder} currentPrice={currentPrice} />
+        <OrderBookLadder
+          ladder={ladder}
+          currentPrice={currentPrice}
+          activeCandle={activeCandle}
+        />
       </div>
     </div>
   );

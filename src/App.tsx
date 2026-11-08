@@ -18,14 +18,37 @@ interface TimedVolume {
   pulled: number;
 }
 
+function seedRealisticDepth(ob: OrderBookEngine, centerPrice: number) {
+  const rounded = Math.round(centerPrice / 0.5) * 0.5;
+  const bids: [number, number][] = [];
+  const asks: [number, number][] = [];
+
+  for (let i = 0; i < 15; i++) {
+    const bidP = Number((rounded - i * 0.5).toFixed(2));
+    const askP = Number((rounded + (i + 1) * 0.5).toFixed(2));
+    const bidSize = i === 10 ? 505 : Math.round(Math.random() * 60 + 15);
+    const askSize = i === 10 ? 380 : Math.round(Math.random() * 60 + 15);
+    bids.push([bidP, bidSize]);
+    asks.push([askP, askSize]);
+  }
+
+  ob.applyDepth({
+    lastUpdateId: 1,
+    bids,
+    asks,
+    timestamp: Date.now(),
+  });
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'spot' | 'call' | 'put'>('spot');
-  const [spotPrice, setSpotPrice] = useState<number>(2684.50);
+  const [timeframe, setTimeframe] = useState<string>('1m');
+  const [spotPrice, setSpotPrice] = useState<number>(4050.50);
   const [basis] = useState<number>(0.25);
   const [latencyMs, setLatencyMs] = useState<number>(14);
   const [ladder, setLadder] = useState<LadderRow[]>([]);
   const [activeCandle, setActiveCandle] = useState<CandleFootprint | null>(null);
-  const [historicalCandles, setHistoricalCandles] = useState<CandleFootprint[]>(() => generateSeedCandles(2684.50, 8));
+  const [historicalCandles, setHistoricalCandles] = useState<CandleFootprint[]>(() => generateSeedCandles(4050.50, 6));
   const [nearestBigBuyer, setNearestBigBuyer] = useState<BigOrderSummary | null>(null);
   const [nearestBigSeller, setNearestBigSeller] = useState<BigOrderSummary | null>(null);
   const [bigOrders, setBigOrders] = useState<BigOrderInfo[]>([]);
@@ -46,9 +69,10 @@ export default function App() {
   const [isMuted, setIsMuted] = useState<boolean>(soundManager.getMuted());
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  const spotPriceRef = useRef<number>(2684.50);
+  const spotPriceRef = useRef<number>(4050.50);
   const orderBookRef = useRef<OrderBookEngine>(new OrderBookEngine({ tickSize: 0.5, bigOrderMultiplier: 2.5 }));
-  const footprintRef = useRef<FootprintEngine>(new FootprintEngine({ tickSize: 0.5, dotLotUnit: 2.0 }));
+  const footprintRef = useRef<FootprintEngine>(new FootprintEngine({ tickSize: 0.5, dotLotUnit: 1.5 }));
+  const hasInitializedPriceRef = useRef<boolean>(false);
   const lastWhaleCountRef = useRef<number>(0);
   const minuteVolumesRef = useRef<TimedVolume[]>([]);
 
@@ -56,24 +80,7 @@ export default function App() {
     const ob = orderBookRef.current;
     const fp = footprintRef.current;
 
-    // Seed initial resting depth around $2,684.50
-    const initialBids: [number, number][] = [
-      [2684.5, 34], [2684.0, 52], [2683.5, 78], [2683.0, 115], [2682.5, 88],
-      [2682.0, 145], [2681.5, 92], [2681.0, 210], [2680.5, 180], [2680.0, 505],
-      [2679.5, 85], [2679.0, 110], [2678.5, 65], [2678.0, 340], [2677.5, 75]
-    ];
-    const initialAsks: [number, number][] = [
-      [2685.0, 28], [2685.5, 45], [2686.0, 62], [2686.5, 95], [2687.0, 120],
-      [2687.5, 85], [2688.0, 175], [2688.5, 110], [2689.0, 195], [2690.0, 380],
-      [2690.5, 70], [2691.0, 130], [2691.5, 95], [2692.0, 280], [2692.5, 60]
-    ];
-
-    ob.applyDepth({
-      lastUpdateId: 1,
-      bids: initialBids,
-      asks: initialAsks,
-      timestamp: Date.now(),
-    });
+    seedRealisticDepth(ob, 4050.50);
 
     // Start live WebSocket stream to Binance Gold (PAXG/USDT)
     const feed = new BinanceGoldFeed({
@@ -82,6 +89,13 @@ export default function App() {
     });
 
     const unsubTrades = feed.subscribeTrades((trade) => {
+      // On first real price arrival, re-center candles and initial depth around the true price
+      if (!hasInitializedPriceRef.current && trade.price > 100) {
+        hasInitializedPriceRef.current = true;
+        seedRealisticDepth(ob, trade.price);
+        setHistoricalCandles(generateSeedCandles(trade.price, 6));
+      }
+
       spotPriceRef.current = trade.price;
       setSpotPrice(trade.price);
       ob.applyTrade(trade);
@@ -112,10 +126,10 @@ export default function App() {
       fp.initCandle(candle);
     });
 
-    // Render loop ticker: smooth 10fps state update without effect teardowns
+    // Render loop ticker: smooth 10fps state update
     const ticker = setInterval(() => {
       const currentSpot = spotPriceRef.current;
-      const rawLadder = ob.getLadder(currentSpot, 16);
+      const rawLadder = ob.getLadder(currentSpot, 14);
       const activeFp = fp.getActiveCandleFootprint();
       const bigs = ob.getBigOrdersList();
 
@@ -128,6 +142,7 @@ export default function App() {
       setActiveCandle(activeFp);
       const hist = fp.getHistoricalCandles();
       if (hist.length > 0) setHistoricalCandles(hist);
+
       setNearestBigBuyer(ob.getNearestBigBuyers(currentSpot));
       setNearestBigSeller(ob.getNearestBigSellers(currentSpot));
       setBigOrders(bigs);
@@ -160,7 +175,7 @@ export default function App() {
       unsubKline();
       feed.disconnect();
     };
-  }, []); // STABLE: Empty dependency array prevents WebSocket reconnect storms
+  }, []);
 
   // Handle ATM Call & ATM Put dynamic view projection
   const atmStrike = computeATMStrike(spotPrice, 5);
@@ -217,6 +232,8 @@ export default function App() {
             currentPrice={displayedPrice}
             instrumentTitle={instrumentTitle}
             stepDescription={stepDescription}
+            timeframe={timeframe}
+            onTimeframeChange={setTimeframe}
           />
 
           {/* Quick Notice & Sound Toggle */}

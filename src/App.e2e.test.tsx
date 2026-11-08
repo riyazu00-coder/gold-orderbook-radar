@@ -12,7 +12,7 @@ describe('Gold OrderBook Radar End-to-End', () => {
 
     expect(screen.getByText(/Nearest Big Buyers/i)).toBeInTheDocument();
     expect(screen.getByText(/Nearest Big Sellers/i)).toBeInTheDocument();
-    expect(screen.getByText(/Forming candle/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Forming candle/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Big orders right now/i)).toBeInTheDocument();
     expect(screen.getByText(/Big levels: did price turn or break\?/i)).toBeInTheDocument();
   });
