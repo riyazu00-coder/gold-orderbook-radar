@@ -31,3 +31,17 @@ describe('optionsEngine', () => {
     expect(optionLadder[0].price).toBeGreaterThan(0);
   });
 });
+
+  it('ensures Put ladder is sorted descending from highest price to lowest price', () => {
+    const spotLadder = [
+      { price: 2685.0, bidSize: 0, askSize: 50, pulledSize: 0, isBigBuyer: false, isBigSeller: true, ratioVsNormal: 3.0 },
+      { price: 2684.5, bidSize: 0, askSize: 20, pulledSize: 0, isBigBuyer: false, isBigSeller: false, ratioVsNormal: 1.0 },
+      { price: 2684.0, bidSize: 40, askSize: 0, pulledSize: 5, isBigBuyer: true, isBigSeller: false, ratioVsNormal: 2.5 },
+    ];
+
+    const putLadder = deriveOptionLadder('put', spotLadder, 2684.0, 2685.0, 15.0);
+    // Highest price must be at index 0, lowest at the end
+    for (let i = 0; i < putLadder.length - 1; i++) {
+      expect(putLadder[i].price).toBeGreaterThanOrEqual(putLadder[i + 1].price);
+    }
+  });

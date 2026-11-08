@@ -16,7 +16,7 @@ export const OrderBookLadder: React.FC<OrderBookLadderProps> = ({
 
   return (
     <div className="flex-1">
-      {ladder.map((row) => {
+      {ladder.map((row, idx) => {
         const isCurrent = Math.abs(row.price - currentPrice) < 0.25;
         const bidWidth = (row.bidSize / maxBid) * 120;
         const askWidth = (row.askSize / maxAsk) * 120;
@@ -24,7 +24,7 @@ export const OrderBookLadder: React.FC<OrderBookLadderProps> = ({
 
         return (
           <div
-            key={row.price}
+            key={`${row.price}-${idx}`}
             className={`flex items-center h-7 text-xs font-mono border-b border-[#161d2d] transition-colors ${
               isCurrent ? 'bg-blue-500/10' : 'hover:bg-slate-800/20'
             }`}

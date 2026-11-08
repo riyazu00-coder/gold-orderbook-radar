@@ -40,7 +40,7 @@ export class BinanceGoldFeed {
 
     // Combined stream URL for depth, aggTrade, and 1m kline
     const streamNames = [
-      `${this.symbol}@depth@100ms`,
+      `${this.symbol}@depth20@100ms`,
       `${this.symbol}@aggTrade`,
       `${this.symbol}@kline_1m`,
     ].join('/');

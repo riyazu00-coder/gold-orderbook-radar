@@ -59,7 +59,7 @@ export function deriveOptionLadder(
   const delta = type === 'call' ? 0.52 : -0.48;
   const optionTick = 0.10; // Option price step, e.g. 10 cents
 
-  return spotLadder.map((spotRow) => {
+  const rows = spotLadder.map((spotRow) => {
     const spotDiff = spotRow.price - spotPrice;
     const optionDiff = spotDiff * delta;
     const optionPrice = Math.max(0.05, Number((baseOptionPrice + optionDiff).toFixed(2)));
@@ -89,4 +89,5 @@ export function deriveOptionLadder(
       };
     }
   });
+  return rows.sort((a, b) => b.price - a.price);
 }

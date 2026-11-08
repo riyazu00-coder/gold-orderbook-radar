@@ -25,7 +25,6 @@ describe('OrderBookEngine', () => {
   });
 
   it('detects pulled (cancelled) orders when size drops without a matching trade', () => {
-    // Initial depth: 50 lots at 2680.0
     engine.applyDepth({
       lastUpdateId: 101,
       bids: [[2680.0, 50.0]],
@@ -33,7 +32,6 @@ describe('OrderBookEngine', () => {
       timestamp: Date.now(),
     });
 
-    // Size suddenly drops to 10.0 at 2680.0, but NO trade happened!
     engine.applyDepth({
       lastUpdateId: 102,
       bids: [[2680.0, 10.0]],
@@ -44,11 +42,10 @@ describe('OrderBookEngine', () => {
     const pulled = engine.getPulledOrders();
     expect(pulled.length).toBeGreaterThan(0);
     expect(pulled[0].price).toBe(2680.0);
-    expect(pulled[0].size).toBe(40.0); // 50 - 10 = 40 pulled lots
+    expect(pulled[0].size).toBe(40.0);
   });
 
   it('does NOT count executed trades as pulled orders', () => {
-    // Initial depth: 50 lots at 2680.0
     engine.applyDepth({
       lastUpdateId: 201,
       bids: [[2680.0, 50.0]],
@@ -56,7 +53,6 @@ describe('OrderBookEngine', () => {
       timestamp: Date.now(),
     });
 
-    // Market sell trade consumes 30 lots at 2680.0
     engine.applyTrade({
       price: 2680.0,
       size: 30.0,
@@ -64,7 +60,6 @@ describe('OrderBookEngine', () => {
       timestamp: Date.now(),
     });
 
-    // Depth now reflects 20 lots (50 - 30 = 20)
     engine.applyDepth({
       lastUpdateId: 202,
       bids: [[2680.0, 20.0]],
@@ -73,7 +68,6 @@ describe('OrderBookEngine', () => {
     });
 
     const pulled = engine.getPulledOrders();
-    // Since 30 lots were filled by trades, pulled should be 0
     expect(pulled.filter((p) => p.price === 2680.0).length).toBe(0);
   });
 
@@ -82,11 +76,11 @@ describe('OrderBookEngine', () => {
       lastUpdateId: 301,
       bids: [
         [2680.0, 10.0],
-        [2678.0, 100.0], // Big buyer (100 lots)
+        [2678.0, 100.0],
       ],
       asks: [
         [2681.0, 12.0],
-        [2684.0, 95.0], // Big seller (95 lots)
+        [2684.0, 95.0],
       ],
       timestamp: Date.now(),
     });
@@ -98,5 +92,39 @@ describe('OrderBookEngine', () => {
     expect(nearestBuyer?.size).toBe(100.0);
     expect(nearestSeller?.price).toBe(2684.0);
     expect(nearestSeller?.size).toBe(95.0);
+  });
+
+  it('preserves exact raw sub-tick orders without overwriting or false pull triggers', () => {
+    engine.applyDepth({
+      lastUpdateId: 401,
+      bids: [
+        [2684.10, 15.0],
+        [2684.20, 25.0],
+      ],
+      asks: [],
+      timestamp: Date.now(),
+    });
+
+    engine.applyDepth({
+      lastUpdateId: 402,
+      bids: [
+        [2684.10, 15.0],
+      ],
+      asks: [],
+      timestamp: Date.now(),
+    });
+
+    const ladder = engine.getLadder(2684.0, 3);
+    const tickRow = ladder.find((r) => r.price === 2684.0);
+    expect(tickRow?.bidSize).toBe(40.0);
+  });
+
+  it('computes deadband smoothed center price to prevent ladder jitter', () => {
+    const center1 = engine.getSmoothedCenter(2684.24);
+    const center2 = engine.getSmoothedCenter(2684.26);
+    expect(center1).toBe(center2);
+
+    const center3 = engine.getSmoothedCenter(2686.00);
+    expect(center3).toBe(2686.0);
   });
 });
